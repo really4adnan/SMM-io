@@ -3,14 +3,18 @@ let boolleftrun = true;
 
 const gamespace = document.getElementsByTagName("canvas")[0];
 const context = gamespace.getContext('2d');
-gamespace.height = window.innerHeight;
+
 gamespace.width = window.innerWidth;
+gamespace.height = Math.max(window.innerHeight, 850);
+
 const g = 0.5;
 const eg = 0.25;
 let booljump = true;
 let ci;
 let basepos;
-let rafm;
+let rafm = null;
+let isRestarting = false;
+
 const audio = new Audio('audio/mariotheme.mp3');
 const coinaudio = new Audio('audio/coin.mp3');
 let isplaying = 0;
@@ -31,7 +35,7 @@ function audioplay() {
 class Character {
     constructor() {
         this.velocity = { x: 0, y: 0 };
-        this.position = { x: 100, y: 700 };
+        this.position = { x: 100, y: 680 };
         this.frame = { x: 0, start: 0, end: 1 };
         this.speed = 0;
         this.charimg = new Image();
@@ -100,54 +104,8 @@ class Enemy {
     }
 }
 
-let multibase = [
-    new Base({ x: 0, y: 750 }, 1000, 80), new Base({ x: 1050, y: 675 }, 130, 20), new Base({ x: 1250, y: 575 }, 130, 20),
-    new Base({ x: 1450, y: 750 }, 500, 80), new Base({ x: 2100, y: 675 }, 130, 20), new Base({ x: 2300, y: 720 }, 130, 20),
-    new Base({ x: 2550, y: 675 }, 500, 140), new Base({ x: 3200, y: 720 }, 130, 20), new Base({ x: 3400, y: 750 }, 800, 80),
-    new Base({ x: 4250, y: 675 }, 130, 20), new Base({ x: 4200, y: 475 }, 130, 20), new Base({ x: 4450, y: 575 }, 130, 20),
-    new Base({ x: 4450, y: 375 }, 130, 20), new Base({ x: 4700, y: 650 }, 130, 20), new Base({ x: 4950, y: 750 }, 800, 80),
-    new Base({ x: 5900, y: 650 }, 130, 20), new Base({ x: 6250, y: 750 }, 70, 80), new Base({ x: 6420, y: 650 }, 70, 20),
-    new Base({ x: 6650, y: 750 }, 400, 80), new Base({ x: 7200, y: 650 }, 130, 20), new Base({ x: 7450, y: 750 }, 500, 80),
-    new Base({ x: 8100, y: 650 }, 130, 20), new Base({ x: 8430, y: 550 }, 130, 20), new Base({ x: 8700, y: 550 }, 130, 20),
-    new Base({ x: 8930, y: 450 }, 130, 20), new Base({ x: 9200, y: 650 }, 130, 20), new Base({ x: 9450, y: 750 }, 500, 80),
-    new Base({ x: 10000, y: 650 }, 130, 20), new Base({ x: 10200, y: 550 }, 130, 20), new Base({ x: 10000, y: 450 }, 130, 20),
-    new Base({ x: 10400, y: 650 }, 130, 20), new Base({ x: 10400, y: 450 }, 130, 20), new Base({ x: 10600, y: 550 }, 130, 20),
-    new Base({ x: 11050, y: 750 }, 500, 80), new Base({ x: 11650, y: 600 }, 130, 20), new Base({ x: 11900, y: 700 }, 130, 20),
-    new Base({ x: 12200, y: 750 }, 500, 80), new Base({ x: 12800, y: 600 }, 130, 20), new Base({ x: 13000, y: 750 }, 130, 20),
-    new Base({ x: 13200, y: 600 }, 130, 20), new Base({ x: 13000, y: 500 }, 130, 20), new Base({ x: 13500, y: 700 }, 130, 20),
-    new Base({ x: 13800, y: 750 }, 500, 80), new Base({ x: 14600, y: 750 }, 600, 80)
-];
-
-let coins = [
-    new Coin({ x: 1105, y: 640 }), new Coin({ x: 1305, y: 540 }), new Coin({ x: 2155, y: 640 }),
-    new Coin({ x: 2355, y: 685 }), new Coin({ x: 3255, y: 685 }), new Coin({ x: 4305, y: 640 }),
-    new Coin({ x: 4255, y: 440 }), new Coin({ x: 4505, y: 540 }), new Coin({ x: 4505, y: 340 }),
-    new Coin({ x: 4755, y: 615 }), new Coin({ x: 5955, y: 615 }), new Coin({ x: 6440, y: 615 }),
-    new Coin({ x: 7255, y: 615 }), new Coin({ x: 7505, y: 715 }), new Coin({ x: 8485, y: 515 }),
-    new Coin({ x: 8755, y: 515 }), new Coin({ x: 8985, y: 415 }), new Coin({ x: 9255, y: 615 }),
-    new Coin({ x: 10055, y: 615 }), new Coin({ x: 10255, y: 515 }), new Coin({ x: 10055, y: 415 }),
-    new Coin({ x: 10455, y: 615 }), new Coin({ x: 10455, y: 415 }), new Coin({ x: 10655, y: 515 }),
-    new Coin({ x: 11705, y: 565 }), new Coin({ x: 11955, y: 665 }), new Coin({ x: 12855, y: 565 }),
-    new Coin({ x: 13055, y: 715 }), new Coin({ x: 13255, y: 565 }), new Coin({ x: 13055, y: 465 }),
-    new Coin({ x: 13255, y: 565 }), new Coin({ x: 13555, y: 665 }), new Coin({ x: 13855, y: 715 }),
-    new Coin({ x: 13960, y: 715 })
-];
-
-let enemies = [];
-function genenemy() {
-    enemies.push(new Enemy(Math.floor(Math.random() * (gamespace.width - object.position.x)) + object.position.x + 60));
-}
-setInterval(genenemy, 5000);
-
-const keys = {
-    right: { pressed: false },
-    left: { pressed: false }
-};
-
-function restart() {
-    cancelAnimationFrame(rafm);
-    object = new Character();
-    multibase = [
+function getInitialBases() {
+    return [
         new Base({ x: 0, y: 750 }, 1000, 80), new Base({ x: 1050, y: 675 }, 130, 20), new Base({ x: 1250, y: 575 }, 130, 20),
         new Base({ x: 1450, y: 750 }, 500, 80), new Base({ x: 2100, y: 675 }, 130, 20), new Base({ x: 2300, y: 720 }, 130, 20),
         new Base({ x: 2550, y: 675 }, 500, 140), new Base({ x: 3200, y: 720 }, 130, 20), new Base({ x: 3400, y: 750 }, 800, 80),
@@ -164,8 +122,10 @@ function restart() {
         new Base({ x: 13200, y: 600 }, 130, 20), new Base({ x: 13000, y: 500 }, 130, 20), new Base({ x: 13500, y: 700 }, 130, 20),
         new Base({ x: 13800, y: 750 }, 500, 80), new Base({ x: 14600, y: 750 }, 600, 80)
     ];
+}
 
-    coins = [
+function getInitialCoins() {
+    return [
         new Coin({ x: 1105, y: 640 }), new Coin({ x: 1305, y: 540 }), new Coin({ x: 2155, y: 640 }),
         new Coin({ x: 2355, y: 685 }), new Coin({ x: 3255, y: 685 }), new Coin({ x: 4305, y: 640 }),
         new Coin({ x: 4255, y: 440 }), new Coin({ x: 4505, y: 540 }), new Coin({ x: 4505, y: 340 }),
@@ -179,11 +139,40 @@ function restart() {
         new Coin({ x: 13255, y: 565 }), new Coin({ x: 13555, y: 665 }), new Coin({ x: 13855, y: 715 }),
         new Coin({ x: 13960, y: 715 })
     ];
+}
+
+let multibase = getInitialBases();
+let coins = getInitialCoins();
+let enemies = [];
+
+function genenemy() {
+    enemies.push(new Enemy(Math.floor(Math.random() * (gamespace.width - object.position.x)) + object.position.x + 60));
+}
+setInterval(genenemy, 5000);
+
+const keys = {
+    right: { pressed: false },
+    left: { pressed: false }
+};
+
+function restart() {
+    if (isRestarting) return;
+    isRestarting = true;
+
+    object = new Character();
+    multibase = getInitialBases();
+    coins = getInitialCoins();
     enemies = [];
     boolrightrun = true;
     boolleftrun = true;
-    Move();
+    keys.right.pressed = false;
+    keys.left.pressed = false;
+
     updatelives();
+
+    setTimeout(() => {
+        isRestarting = false;
+    }, 100);
 }
 
 function Move() {
@@ -191,50 +180,46 @@ function Move() {
     context.clearRect(0, 0, gamespace.width, gamespace.height);
     context.beginPath();
     object.removeduplicate();
-    
+
     enemies.forEach((enem) => {
-        try { enem.draw(); }
-        catch (err) { ; }
+        try { enem.draw(); } catch (err) {}
     });
-    
+
     multibase.forEach((base) => {
         base.draw();
     });
-    
+
     coins.forEach((coin) => {
-        try { coin.draw(); }
-        catch (err) { ; }
+        try { coin.draw(); } catch (err) {}
     });
 
-    if (keys.right.pressed && object.position.x < 400)
+    if (keys.right.pressed && object.position.x < 400) {
         object.velocity.x = 5;
-    else if (keys.left.pressed && object.position.x > 0)
+    } else if (keys.left.pressed && object.position.x > 0) {
         object.velocity.x = -5;
-    else
+    } else {
         object.velocity.x = 0;
+    }
 
     if (keys.right.pressed) {
         multibase.forEach((base) => {
-            base.draw();
             base.position.x -= 5;
         });
         coins.forEach((coin) => {
-            coin.draw();
             coin.position.x -= 5;
         });
         enemies.forEach((enem) => {
-            enem.draw();
             enem.position.x -= 5;
         });
     }
 
     multibase.forEach((base) => {
-        if ((object.position.y > base.position.y && object.position.y < base.position.y + base.height) && 
+        if ((object.position.y > base.position.y && object.position.y < base.position.y + base.height) &&
             object.position.x + 35 >= base.position.x && object.position.x + 30 <= base.position.x + base.width) {
             object.velocity.y = 1;
         }
-        if (object.position.y + 50 <= base.position.y && 
-            object.position.y + 50 + object.velocity.y >= base.position.y && 
+        if (object.position.y + 50 <= base.position.y &&
+            object.position.y + 50 + object.velocity.y >= base.position.y &&
             object.position.x + 35 >= base.position.x && object.position.x + 30 <= base.position.x + base.width) {
             object.velocity.y = 0;
             booljump = true;
@@ -242,32 +227,32 @@ function Move() {
 
         try {
             enemies.forEach((enem) => {
-                if (enem.position.y + 50 >= base.position.y && 
+                if (enem.position.y + 50 >= base.position.y &&
                     enem.position.x + 35 >= base.position.x && enem.position.x + 30 <= base.position.x + base.width) {
                     enem.velocity.y = 0;
                 }
             });
-        } catch (arr) { ; }
+        } catch (arr) {}
     });
 
     for (ci = 0; ci < coins.length; ci++) {
         try {
             let cop = coins[ci].position;
             let marp = object.position;
-            if (marp.y < cop.y && marp.y + 60 > cop.y + 40 && 
+            if (marp.y < cop.y && marp.y + 60 > cop.y + 40 &&
                ((marp.x + 50 > cop.x && marp.x < cop.x + 10) || (marp.x > cop.x && cop.x + 10 > marp.x))) {
                 delete coins[ci];
                 updatescore(50);
                 coinaudio.currentTime = 0;
                 coinaudio.play();
             }
-        } catch (err) { ; }
+        } catch (err) {}
     }
 
     for (let ei = 0; ei < enemies.length; ei++) {
         try {
-            if (((object.position.x + 50 > enemies[ei].position.x && object.position.x < enemies[ei].position.x) || 
-                 (object.position.x > enemies[ei].position.x && enemies[ei].position.x + 35 > object.position.x)) && 
+            if (((object.position.x + 50 > enemies[ei].position.x && object.position.x < enemies[ei].position.x) ||
+                 (object.position.x > enemies[ei].position.x && enemies[ei].position.x + 35 > object.position.x)) &&
                  object.position.y < enemies[ei].position.y && enemies[ei].position.y < object.position.y + 50) {
                 if (object.velocity.y <= 0 || enemies[ei].velocity.y != 0) {
                     restart();
@@ -276,7 +261,7 @@ function Move() {
                 }
                 delete enemies[ei];
             }
-        } catch (err) { ; }
+        } catch (err) {}
     }
 
     if (object.position.y >= gamespace.height) {
@@ -331,12 +316,12 @@ document.onkeyup = (e) => {
 
 let timer = document.getElementById('timer');
 let inittime = 100;
-timer.innerText = inittime;
+if (timer) timer.innerText = inittime;
 
 function updatetimer() {
     inittime--;
-    timer.innerText = inittime;
-    if (inittime == 0) {
+    if (timer) timer.innerText = inittime;
+    if (inittime <= 0) {
         clearInterval(updatetime);
         gameover();
     }
@@ -345,32 +330,33 @@ const updatetime = setInterval(updatetimer, 1000);
 
 let lives = document.getElementById('nofl');
 let initlives = 3;
-lives.innerText = "X" + initlives;
+if (lives) lives.innerText = "X" + initlives;
 
 function updatelives() {
     initlives--;
     if (initlives < 1) {
         gameover();
     }
-    lives.innerText = "X" + initlives;
+    if (lives) lives.innerText = "X" + initlives;
 }
 
 let score = document.getElementById('score');
 let initscore = 0;
-score.innerText = "SCORE:" + initscore;
+if (score) score.innerText = "SCORE:" + initscore;
 
 function updatescore(n) {
     initscore += n;
-    score.innerText = "SCORE:" + initscore;
+    if (score) score.innerText = "SCORE:" + initscore;
 }
 
 function gameover() {
     cancelAnimationFrame(rafm);
     clearInterval(updatetime);
-    setTimeout(gameoverscreen, 2000);
+    setTimeout(gameoverscreen, 1000);
 }
 
 function gameoverscreen() {
-    document.getElementById('gameover').style.display = "flex";
+    const goEl = document.getElementById('gameover');
+    if (goEl) goEl.style.display = "flex";
     audio.pause();
 }
